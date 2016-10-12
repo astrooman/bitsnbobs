@@ -12,6 +12,9 @@ using std::endl;
 
 int main(int argc, char *argv[])
 {
+	if (std::string(argv[1]) == "-h") {
+		cout << "Usage: read_filterbank <input file> <output file> <samples to read>" << endl << endl;
+	}
 	std::stringstream oss;
 	oss << atoi(argv[1]);
 	std::string inname, outname;
