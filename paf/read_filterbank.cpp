@@ -18,7 +18,7 @@ void SaveData(std::string outname, unsigned char *data, int nchans, int tsamps, 
 	DataType *outdata = reinterpret_cast<DataType*>(data);
 
 	for (int ii = 0; ii < nchans * tsamps; ii++) {
-		outfile << (unsigned int)data[ii] << endl;
+		outfile << (float)outdata[ii] << endl;
 	}
 	outfile.close();
 }
