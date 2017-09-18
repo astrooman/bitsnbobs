@@ -94,11 +94,15 @@ int main(int argc, char *argv[])
 
     cout << "Read the header..." << endl;
 
-	size_t headendpos = inputfile.tellg();
-	inputfile.seekg(0, inputfile.end);
-	size_t fileendpos = inputfile.tellg();
-	inputfile.seekg(headendpos - 4, inputfile.beg);
-	maxtsamp = (fileendpos - headendpos) / nchans / (inbits / 8);
+    size_t headendpos = inputfile.tellg();
+    inputfile.seekg(0, inputfile.end);
+    size_t fileendpos = inputfile.tellg();
+    inputfile.seekg(headendpos - 4, inputfile.beg);
+    maxtsamp = (fileendpos - headendpos) / nchans / (inbits / 8);
+
+    cout << "Number of channels: " << nchans << endl;
+    cout << "Number of time samples: " << maxtsamp << endl;
+    cout << "Bits per sample: " << inbits << endl;
 
     char *head = new char[4];
 	inputfile.read(head, 4);
@@ -108,8 +112,9 @@ int main(int argc, char *argv[])
 	cout.flush();
 
     int tsamp;
-	tsamp = std::min(atoi(argv[3]), maxtsamp);
-	size_t to_read = nchans * tsamp * inbits / 8;
+    tsamp = std::min(atoi(argv[3]), maxtsamp);
+    cout << tsamp << endl;
+    unsigned int to_read = nchans * tsamp * (inbits / 8);
     unsigned char *data = new unsigned char[to_read];
     cout << "Reading some data now..." << endl;
 	inputfile.read(reinterpret_cast<char*>(data), to_read);
