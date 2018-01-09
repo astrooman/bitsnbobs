@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -12,6 +13,8 @@ using std::endl;
 
 template<class DataType>
 void SaveData(std::string outname, unsigned char *data, int nchans, int tsamps, int nbits) {
+
+	int saved = 0;
 
 	std::ofstream outfile(outname.c_str(), std::ofstream::out | std::ofstream::trunc);
 
@@ -111,24 +114,47 @@ int main(int argc, char *argv[])
     cout << endl << endl;
 	cout.flush();
 
-    int tsamp;
-    tsamp = std::min(atoi(argv[3]), maxtsamp);
-    cout << tsamp << endl;
+    unsigned int tsamp;
+	unsigned int savetsamp = std::min(atoi(argv[3]), maxtsamp);
+	tsamp = std::min(savetsamp, 1024U);
+	unsigned int stride = nchans * (inbits / 8);
     unsigned int to_read = nchans * tsamp * (inbits / 8);
     unsigned char *data = new unsigned char[to_read];
     cout << "Reading some data now..." << endl;
-	inputfile.read(reinterpret_cast<char*>(data), to_read);
 
-	switch(inbits) {
-		case 8:		SaveData<unsigned char>(outname, data, nchans, tsamp, inbits);
-					break;
-		case 32: 	SaveData<float>(outname, data, nchans, tsamp, inbits);
-					break;
-		default:	cout << "Value of bits currently not supported" << endl;
-					break;
+	std::ofstream outfile(outname.c_str(), std::ofstream::out | std::ofstream::trunc);
+	unsigned int saved = 0;
+
+	cout << std::setprecision(2) << std::fixed;
+
+	while (saved < savetsamp) {
+
+		inputfile.read(reinterpret_cast<char*>(data), to_read);
+
+		if (inbits == 8) {
+			unsigned char *outdata = reinterpret_cast<unsigned char*>(data);
+			for (int isamp = 0; isamp < nchans * tsamp; isamp++) {
+				outfile << (float)outdata[isamp] << endl;
+			}
+		} else if (inbits == 32) {
+			float *outdata = reinterpret_cast<float*>(data);
+			for (int isamp = 0; isamp < nchans * tsamp; isamp++) {
+				outfile << (float)outdata[isamp] << endl;
+			}
+		} else {
+			cout << "The value of " << inbits << " input bits currently not supported" << endl;
+			break;
+		}
+
+		saved += tsamp;
+		cout << (float)saved / (float)savetsamp * 100.0f << "% done    \r";
+		cout.flush();
+
 	}
 
-    inputfile.close();
+	cout << endl;
+
+  	inputfile.close();
 
 	return 0;
 }
