@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <fstream>
@@ -10,6 +11,31 @@
 
 using std::cout;
 using std::endl;
+using std::string;
+
+struct FilHeader {
+    std::string rawfile;
+    std::string sourcename;
+
+    double az;                      // azimuth angle in deg
+    double dec;                     // source declination
+    double fch1;                    // frequency of the top channel in MHz
+    double foff;                    // channel bandwidth in MHz
+    double ra;                      // source right ascension
+    double rdm;                     // reference DM
+    double tsamp;                   // sampling time in seconds
+    double tstart;                  // observation start time in MJD format
+    double za;                      // zenith angle in deg
+
+    int datatype;                  // data type ID
+    int ibeam;                      // beam number
+    int machineid;
+    int nbeams;
+    int nbits;
+    int nchans;
+    int nifs;                       // something, something, something, DAAARK SIIIDEEEE
+    int telescopeid;
+};
 
 template<class DataType>
 void SaveData(std::string outname, unsigned char *data, int nchans, int tsamps, int nbits) {
@@ -28,10 +54,32 @@ void SaveData(std::string outname, unsigned char *data, int nchans, int tsamps, 
 
 int main(int argc, char *argv[])
 {
+
+	if (argc < 2) {
+		cout << "No command line options provided!" << endl;
+		cout << "Use read_filterbank -h or --help" << endl;
+		exit(EXIT_FAILURE);
+	}
+
 	if (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help") {
 		cout << "Usage: read_filterbank <input file> <output file> <samples to read>" << endl << endl;
-                exit(EXIT_SUCCESS);
+		cout << "Command line options: -i - print out the header information and quit" << endl;
+	    exit(EXIT_SUCCESS);
 	}
+
+	FilHeader header;
+	memset(&header, 0, sizeof(header));
+
+	bool printheader = false;
+
+	for (int iarg = 0; iarg < argc; ++iarg) {
+		cout << argv[iarg] << endl;
+		if (string(argv[iarg]) == "-i") {
+			printheader = true;
+			break;
+		}
+	}
+
 	std::stringstream oss;
 	oss << atoi(argv[1]);
 	std::string inname, outname;
@@ -53,7 +101,10 @@ int main(int argc, char *argv[])
 
 	double tdouble;
 	int tint;
-	while(true)		// go 4eva
+
+	// TODO: Add proper command line support
+
+	while(true)
 	{
 		inputfile.read((char *)&strlen, sizeof(int));
 		inputfile.read(field, strlen * sizeof(char));
@@ -61,41 +112,73 @@ int main(int argc, char *argv[])
 		read_param = field;
 
 		if (read_param == "HEADER_END") break;		// finish reading the header when its end is reached
-		else if (read_param == "rawdatafile")		// need to read some long filename
-		{
+		else if (read_param == "rawdatafile") {
 			inputfile.read((char *)&strlen, sizeof(int));		// reads the length of the raw data file name
 			inputfile.read(field, strlen * sizeof(char));
 			field[strlen] = '\0';
-		}
-		else if (read_param == "source_name")		// need to read source name
-		{
+			header.rawfile = field;
+		} else if (read_param == "source_name") {
 			inputfile.read((char *)&strlen, sizeof(int));
 			inputfile.read(field, strlen * sizeof(char));
 			field[strlen] = '\0';
+			header.sourcename = field;
+		} else if (read_param == "machine_id") {
+			inputfile.read((char *)&header.machineid, sizeof(int));
+		} else if (read_param == "telescope_id") {
+			inputfile.read((char *)&header.machineid, sizeof(int));
+		} else if (read_param == "src_raj") {
+			inputfile.read((char *)&header.ra, sizeof(double));
+		} else if (read_param == "src_dej")	{
+			inputfile.read((char *)&header.dec, sizeof(double));
+		} else if (read_param == "az_start") {
+			inputfile.read((char *)&header.az, sizeof(double));
+		} else if (read_param == "za_start") {
+			inputfile.read((char *)&header.za, sizeof(double));
+		} else if (read_param == "data_type") {
+			inputfile.read((char *)&header.datatype, sizeof(int));
+		} else if (read_param == "refdm") {
+			inputfile.read((char *)&header.rdm, sizeof(double));
+		} else if (read_param == "fch1") {
+			inputfile.read((char *)&header.fch1, sizeof(double));
+		} else if (read_param == "foff") {
+			inputfile.read((char *)&header.foff, sizeof(double));
+		} else if (read_param == "nbeams") {
+			inputfile.read((char *)&header.nbeams, sizeof(int));
+		} else if (read_param == "ibeam") {
+			inputfile.read((char *)&header.ibeam, sizeof(int));
+		} else if (read_param == "tstart") {
+			inputfile.read((char *)&header.tstart, sizeof(double));
+		} else if (read_param == "tsamp") {
+			inputfile.read((char *)&header.tsamp, sizeof(double));
+		} else if (read_param == "nifs") {
+			inputfile.read((char *)&header.nifs, sizeof(int));
+		} else if (read_param == "nchans") {
+			inputfile.read((char *)&header.nchans, sizeof(int));
+		} else if (read_param == "nbits") {
+			inputfile.read((char *)&header.nbits, sizeof(int));
 		}
-		else if (read_param == "machine_id")	inputfile.read((char *)&tint, sizeof(int));
-		else if (read_param == "telescope_id")	inputfile.read((char *)&tint, sizeof(int));
-		else if (read_param == "src_raj")	inputfile.read((char *)&tdouble, sizeof(double));
-		else if (read_param == "src_dej")	inputfile.read((char *)&tdouble, sizeof(double));
-		else if (read_param == "az_start")	inputfile.read((char *)&tdouble, sizeof(double));
-		else if (read_param == "za_start")	inputfile.read((char *)&tdouble, sizeof(double));
-		else if (read_param == "data_type")	inputfile.read((char *)&tint, sizeof(int));
-		else if (read_param == "refdm")		inputfile.read((char *)&tdouble, sizeof(double));
-		else if (read_param == "fch1")		inputfile.read((char *)&tdouble, sizeof(double));
-		else if (read_param == "foff")		inputfile.read((char *)&tdouble, sizeof(double));
-		else if (read_param == "nbeams")	inputfile.read((char *)&tint, sizeof(int));
-		else if (read_param == "ibeam")		inputfile.read((char *)&tint, sizeof(int));
-		else if (read_param == "tstart")	inputfile.read((char *)&tdouble, sizeof(double));
-		else if (read_param == "tsamp")		inputfile.read((char *)&tdouble, sizeof(double));
-		else if (read_param == "nifs")		inputfile.read((char *)&tint, sizeof(int));
-
 		if (read_param == "HEADER_END") break;		// finish reading the header when its end is reached
-
-		else if (read_param == "nchans")	inputfile.read((char *)&nchans, sizeof(int));
-		else if (read_param == "nbits")		inputfile.read((char *)&inbits, sizeof(int));
 	}
 
+	nchans = header.nchans;
+	inbits = header.nbits;
+
     cout << "Read the header..." << endl;
+
+	if (printheader) {
+		cout << "Information stored in the header: " << endl;
+		cout << "Source name: " << header.sourcename << endl;
+		cout << "Azimuth / zenith angle: " << header.az << " / " << header.za << endl;
+		cout << "RA / DEC: " << header.ra << " / " << header.dec << endl;
+		cout << "Top channel frequency: " << header.fch1 << "MHz" << endl;
+		cout << "Channel bandwidth: " << header.foff << "MHz" << endl;
+		cout << "Number of channels: " << header.nchans << endl;
+		cout << "Sampling time: " << header.tsamp * 1000.0f * 1000.0f << "us" << endl;
+		cout << "Number of bits per sample: " << header.nbits << endl;
+
+		inputfile.close();
+		exit(EXIT_SUCCESS);
+	}
 
     size_t headendpos = inputfile.tellg();
     inputfile.seekg(0, inputfile.end);
